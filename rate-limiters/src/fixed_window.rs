@@ -2,10 +2,10 @@ use std::time::{Duration,Instant};
 use crate::RateLimiter;
 
 pub struct FixedWindow {
-    max_requests: u64,
+    max_requests: usize,
     window_size: Duration,
     window_start: Instant,
-    counter: u64,
+    counter: usize,
 }
 
 impl RateLimiter for FixedWindow {
@@ -21,19 +21,19 @@ impl RateLimiter for FixedWindow {
             return false;
         }
     }
+
+    fn get_counter(&self) -> usize {
+        return self.counter;
+    }
 }
 
 impl FixedWindow {
-    pub fn new(max_requests: u64, window_size:Duration) -> Self {
+    pub fn new(max_requests: usize, window_size:Duration) -> Self {
         Self {
             max_requests,
             window_size,
             window_start: Instant::now(),
             counter: 0
         }
-    }
-
-    pub fn get_counter(&self) -> u64 {
-        return self.counter;
     }
 }
