@@ -10,7 +10,7 @@ pub struct FixedWindow {
 
 impl RateLimiter for FixedWindow {
     fn check(&mut self) -> bool {
-        if Instant::now() - self.window_start > self.window_size {
+        while Instant::now() - self.window_start > self.window_size {
             self.window_start = self.window_start + self.window_size;
             self.counter=0;
         }
@@ -31,5 +31,9 @@ impl FixedWindow {
             window_start: Instant::now(),
             counter: 0
         }
+    }
+
+    pub fn get_counter(&self) -> u64 {
+        return self.counter;
     }
 }
