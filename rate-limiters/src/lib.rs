@@ -5,6 +5,7 @@ pub trait RateLimiter {
 
 mod fixed_window;
 mod sliding_window;
+mod sliding_window_counter;
 
 #[cfg(test)]
 mod tests {
@@ -13,6 +14,7 @@ mod tests {
     use super::*;
     use std::time::{Duration};
     use fixed_window::FixedWindow;
+    use sliding_window_counter::SlidingWindowCounter;
 
     fn fails_after_max_req_reached(limiter: &mut dyn RateLimiter) {
         for _ in 0..5{
@@ -26,7 +28,7 @@ mod tests {
             assert_eq!(limiter.check(),true);
         }
         assert_eq!(limiter.get_counter(), 3);
-        std::thread::sleep(Duration::from_millis(150));
+        std::thread::sleep(Duration::from_millis(250));
         limiter.check();
         assert_eq!(limiter.get_counter(), 1);
     }
@@ -45,5 +47,13 @@ mod tests {
         fails_after_max_req_reached(&mut sw);
         sw = SlidingWindow::new(5, Duration::from_millis(100));
         resets_counter_after_time_window(&mut sw);
+    }
+
+    #[test]
+    fn sliding_window_counter_test() {
+        let mut swc = SlidingWindowCounter::new(5,Duration::from_millis(100));
+        fails_after_max_req_reached(&mut swc);
+        swc = SlidingWindowCounter::new(5,Duration::from_millis(100));
+        resets_counter_after_time_window(&mut swc);
     }
 }
