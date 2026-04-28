@@ -6,10 +6,11 @@ pub trait RateLimiter {
 mod fixed_window;
 mod sliding_window;
 mod sliding_window_counter;
+mod leaking_bucket;
 
 #[cfg(test)]
 mod tests {
-    use crate::sliding_window::SlidingWindow;
+    use crate::{leaking_bucket::LeakingBucket, sliding_window::SlidingWindow};
 
     use super::*;
     use std::time::{Duration};
@@ -28,7 +29,7 @@ mod tests {
             assert_eq!(limiter.check(),true);
         }
         assert_eq!(limiter.get_counter(), 3);
-        std::thread::sleep(Duration::from_millis(250));
+        std::thread::sleep(Duration::from_millis(350));
         limiter.check();
         assert_eq!(limiter.get_counter(), 1);
     }
@@ -55,5 +56,13 @@ mod tests {
         fails_after_max_req_reached(&mut swc);
         swc = SlidingWindowCounter::new(5,Duration::from_millis(100));
         resets_counter_after_time_window(&mut swc);
+    }
+
+    #[test]
+    fn leaking_bucket_test() {
+        let mut lb = LeakingBucket::new(5, Duration::from_millis(100));
+        fails_after_max_req_reached(&mut lb);
+        lb = LeakingBucket::new(5, Duration::from_millis(100));
+        resets_counter_after_time_window(&mut lb);
     }
 }
