@@ -7,10 +7,11 @@ mod fixed_window;
 mod sliding_window;
 mod sliding_window_counter;
 mod leaking_bucket;
+mod token_bucket;
 
 #[cfg(test)]
 mod tests {
-    use crate::{leaking_bucket::LeakingBucket, sliding_window::SlidingWindow};
+    use crate::{leaking_bucket::LeakingBucket, sliding_window::SlidingWindow, token_bucket::TokenBucket};
 
     use super::*;
     use std::time::{Duration};
@@ -64,5 +65,13 @@ mod tests {
         fails_after_max_req_reached(&mut lb);
         lb = LeakingBucket::new(5, Duration::from_millis(100));
         resets_counter_after_time_window(&mut lb);
+    }
+
+    #[test]
+    fn token_bucket_test() {
+        let mut tb = TokenBucket::new(5, Duration::from_millis(100));
+        fails_after_max_req_reached(&mut tb);
+        tb = TokenBucket::new(5, Duration::from_millis(100));
+        resets_counter_after_time_window(&mut tb);
     }
 }
