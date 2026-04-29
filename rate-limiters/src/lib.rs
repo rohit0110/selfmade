@@ -3,11 +3,11 @@ pub trait RateLimiter {
     fn get_counter(&self) -> usize;
 }
 
-mod fixed_window;
-mod sliding_window;
-mod sliding_window_counter;
-mod leaking_bucket;
-mod token_bucket;
+pub mod fixed_window;
+pub mod sliding_window;
+pub mod sliding_window_counter;
+pub mod leaking_bucket;
+pub mod token_bucket;
 
 #[cfg(test)]
 mod tests {
@@ -15,6 +15,8 @@ mod tests {
 
     use super::*;
     use std::time::{Duration};
+    use std::thread;
+    use std::sync::{Arc, Mutex};
     use fixed_window::FixedWindow;
     use sliding_window_counter::SlidingWindowCounter;
 
@@ -74,4 +76,28 @@ mod tests {
         tb = TokenBucket::new(5, Duration::from_millis(100));
         resets_counter_after_time_window(&mut tb);
     }
+
+    #[test]
+    fn concurrency_test() {
+        let limiter = Arc::new(Mutex::new(TokenBucket::new(5, Duration::from_millis(100))));
+        let mut handles = vec![];
+
+        for i in 0..10 {
+            let clone = limiter.clone();
+            let handle = thread::spawn(move || {
+                for _ in 0..20{
+                    thread::sleep(Duration::from_millis(20));
+                    let result = clone.lock().unwrap().check();
+                    println!("THREAD {}, {}", i, result);
+                }
+            });
+            handles.push(handle);
+        }
+
+        for handle in handles {
+            handle.join().unwrap();
+        }
+    }
 }
+
+
