@@ -30,11 +30,37 @@ pub fn resp_parser(mut reader: &mut BufReader<TcpStream>) -> RespValue {
         '*' => {
             let items = line[1..].trim_end_matches("\r\n").parse::<i64>().expect("NOT AN INT FOR SIZE ARRAY");
             let mut elements :Vec<RespValue> = vec![];
-            for i in 0..items {
+            for _ in 0..items {
                 elements.push(resp_parser(&mut *reader));
             }
             return RespValue::Array(elements);
         },
          _ => todo!(),
+    }
+}
+
+pub fn resp_serializer(resp_value: RespValue) -> String {
+    match resp_value {
+        RespValue::SimpleString(val) => {
+            return format!("+{}\r\n",val);
+        },
+        RespValue::Error(val) => {
+            return format!("-{}\r\n",val)
+        },
+        RespValue::Integer(val) => {
+            return format!(":{}\r\n",val)
+        }
+        RespValue::BulkString(val) => {
+            let length = val.len();
+            return format!("${}\r\n{}\r\n",length,val);
+        },
+        RespValue::Array(val) => {
+            let length = val.len();
+            let mut array_string = format!("*{}\r\n", length);
+            for item in val {
+                array_string.push_str(&resp_serializer(item));
+            }
+            return array_string;
+        }
     }
 }
