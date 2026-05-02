@@ -7,7 +7,7 @@ pub enum RespValue {
     SimpleString(String), //Non binary safe strings, starts with +, ends with CRLF, \r\n
     Error(String), // starts with -
     Integer(i64), // starts with :
-    BulkString(String), //starts with $, binary safe strings
+    BulkString(Option<String>), //starts with $, binary safe strings, Option to handle Null cases
     Array(Vec<RespValue>), //starts with *
 }
 
@@ -25,7 +25,7 @@ pub fn resp_parser(mut reader: &mut BufReader<TcpStream>) -> RespValue {
             reader.read_exact(&mut buf).unwrap();
             let mut crlf = String::new();
             reader.read_line(&mut crlf); //READ WASTE CHRACTERS \r\n
-            return RespValue::BulkString(String::from_utf8(buf).unwrap());
+            return RespValue::BulkString(Some(String::from_utf8(buf).unwrap()));
         },
         '*' => {
             let items = line[1..].trim_end_matches("\r\n").parse::<i64>().expect("NOT AN INT FOR SIZE ARRAY");
@@ -50,9 +50,9 @@ pub fn resp_serializer(resp_value: RespValue) -> String {
         RespValue::Integer(val) => {
             return format!(":{}\r\n",val)
         }
-        RespValue::BulkString(val) => {
-            let length = val.len();
-            return format!("${}\r\n{}\r\n",length,val);
+         RespValue::BulkString(val) => match val {                                                                        
+            Some(s) => format!("${}\r\n{}\r\n", s.len(), s),                                                             
+            None => String::from("$-1\r\n"),
         },
         RespValue::Array(val) => {
             let length = val.len();
