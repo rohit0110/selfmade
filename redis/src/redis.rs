@@ -30,8 +30,7 @@ impl Redis {
                 let mut reader = BufReader::new(stream);
                 let parsed_resp = resp_parser(&mut reader);
                 match_resp(&parsed_resp);
-                let mut clone = binding.lock().unwrap();
-                let response = handle(parsed_resp, &mut clone);
+                let response = handle(parsed_resp, binding);
                 let serialized_resp = resp_serializer(response);
                 let mut stream = reader.into_inner();
                 stream.write_all(serialized_resp.as_bytes()).unwrap();
