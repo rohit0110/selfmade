@@ -11,31 +11,36 @@ pub enum RespValue {
     Array(Vec<RespValue>), //starts with *
 }
 
-pub fn resp_parser(mut reader: &mut BufReader<TcpStream>) -> RespValue {
+pub fn resp_parser(mut reader: &mut BufReader<TcpStream>) -> Option<RespValue> {
     let mut line: String = String::new();
-    reader.read_line(&mut line);
-
-    match line.chars().nth(0).unwrap() {
-        '+' => return RespValue::SimpleString(line[1..].to_string()),
-        '-' => return RespValue::Error(line[1..].to_string()),
-        ':' => return RespValue::Integer(line[1..].trim_end_matches("\r\n").parse::<i64>().expect("NOT AN INT")),
-        '$' => {
-            let chars = line[1..].trim_end_matches("\r\n").parse::<usize>().expect("NOT AN INT FOR SIZE BULK STRING");
-            let mut buf = vec![0u8;chars];
-            reader.read_exact(&mut buf).unwrap();
-            let mut crlf = String::new();
-            reader.read_line(&mut crlf); //READ WASTE CHRACTERS \r\n
-            return RespValue::BulkString(Some(String::from_utf8(buf).unwrap()));
-        },
-        '*' => {
-            let items = line[1..].trim_end_matches("\r\n").parse::<i64>().expect("NOT AN INT FOR SIZE ARRAY");
-            let mut elements :Vec<RespValue> = vec![];
-            for _ in 0..items {
-                elements.push(resp_parser(&mut *reader));
-            }
-            return RespValue::Array(elements);
-        },
-         _ => todo!(),
+    if reader.read_line(&mut line).unwrap() == 0 {
+        return None;
+    } else {
+        match line.chars().nth(0).unwrap() {
+            '+' => return Some(RespValue::SimpleString(line[1..].trim_end_matches("\r\n").to_string())),
+            '-' => return Some(RespValue::Error(line[1..].trim_end_matches("\r\n").to_string())),
+            ':' => return Some(RespValue::Integer(line[1..].trim_end_matches("\r\n").parse::<i64>().expect("NOT AN INT"))),
+            '$' => {
+                let chars = line[1..].trim_end_matches("\r\n").parse::<usize>().expect("NOT AN INT FOR SIZE BULK STRING");
+                let mut buf = vec![0u8;chars];
+                reader.read_exact(&mut buf).unwrap();
+                let mut crlf = String::new();
+                reader.read_line(&mut crlf); //READ WASTE CHRACTERS \r\n
+                return Some(RespValue::BulkString(Some(String::from_utf8(buf).unwrap())));
+            },
+            '*' => {
+                let items = line[1..].trim_end_matches("\r\n").parse::<i64>().expect("NOT AN INT FOR SIZE ARRAY");
+                let mut elements :Vec<RespValue> = vec![];
+                for _ in 0..items {
+                    match resp_parser(&mut *reader) {
+                        Some(parsed_resp) => elements.push(parsed_resp),
+                        None => return Some(RespValue::Error(String::from("IDK GANG SUMN BROKE IF IT REACHES HERE")))
+                    }
+                }
+                return Some(RespValue::Array(elements));
+            },
+            _ => return Some(RespValue::Error(String::from("NOT A VALID FIRST CHARACTER GANG"))),
+        }
     }
 }
 

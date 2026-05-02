@@ -28,12 +28,18 @@ impl Redis {
             let binding = self.store.clone();
             let thread = thread::spawn(move || {
                 let mut reader = BufReader::new(stream);
-                let parsed_resp = resp_parser(&mut reader);
-                match_resp(&parsed_resp);
-                let response = handle(parsed_resp, binding);
-                let serialized_resp = resp_serializer(response);
-                let mut stream = reader.into_inner();
-                stream.write_all(serialized_resp.as_bytes()).unwrap();
+                loop {
+                    match resp_parser(&mut reader) {
+                        Some(parsed_resp) => {
+                            match_resp(&parsed_resp);
+                            let response = handle(parsed_resp, binding.clone());
+                            let serialized_resp = resp_serializer(response);
+                            let mut stream = reader.get_mut();
+                            stream.write_all(serialized_resp.as_bytes()).unwrap();
+                        },
+                        None => break,
+                    }
+                }
             });
         }
     }
