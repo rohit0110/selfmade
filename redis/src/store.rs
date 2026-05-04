@@ -42,4 +42,18 @@ impl Store {
             return RespValue::Integer(0);
         }
     } 
+
+    pub fn incr(&mut self, key: &str) -> RespValue {
+        if self.store.contains_key(key) {
+            let mut val = match self.store.get(key).clone().unwrap().parse::<i64>() {
+                Ok(n) => n+1,
+                Err(_) => return RespValue::Error(String::from("VALUE IS NOT A NUMBER"))
+            };
+            self.store.insert(key.to_string(), val.to_string());
+            return RespValue::Integer(val);
+        } else {
+            self.store.insert(key.to_string(), 1.to_string());
+            return RespValue::Integer(1);
+        }
+    }
 }

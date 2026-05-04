@@ -42,6 +42,13 @@ pub fn handle(resp_value: RespValue, store: Arc<Mutex<Store>>) -> RespValue {
                             _ => RespValue::Error(String::from("NO KEY PROVIDED"))
                         }
                     },
+                    "INCR" => {
+                        let mut store = store.lock().unwrap();
+                        match &elements[1] {
+                            RespValue::BulkString(Some(key)) => return store.incr(key),
+                            _ => RespValue::Error(String::from("NO KEY PROVIDED")),
+                        }
+                    }
                     _ => RespValue::Error(String::from("ERR unknown command")),                                  
                 },                                                                                               
                 _ => RespValue::Error(String::from("ERR expected bulk string")),
