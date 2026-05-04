@@ -25,4 +25,21 @@ impl Store {
         self.store.insert(key.to_string(), val.to_string());
         return RespValue::SimpleString(String::from("OK"));
     }
+
+    pub fn delete(&mut self, key: &str) -> RespValue {
+        if self.store.contains_key(key) {
+            self.store.remove(key);
+            return RespValue::Integer(1);
+        } else {
+            return RespValue::Integer(0);
+        }
+    }
+
+    pub fn exists(&self, key: &str) -> RespValue {
+        if self.store.contains_key(key) {
+            return RespValue::Integer(1);
+        } else {
+            return RespValue::Integer(0);
+        }
+    } 
 }
