@@ -48,6 +48,17 @@ pub fn handle(resp_value: RespValue, store: Arc<Mutex<Store>>) -> RespValue {
                             RespValue::BulkString(Some(key)) => return store.incr(key),
                             _ => RespValue::Error(String::from("NO KEY PROVIDED")),
                         }
+                    },
+                    "MGET" => {
+                        let mut keys = vec![];
+                        for ele in &elements[1..] {
+                            keys.push(match ele {
+                                RespValue::BulkString(Some(key)) => key.as_str(),
+                                _ => continue
+                            });
+                        }
+                        let store = store.lock().unwrap();
+                        return store.mget(keys);
                     }
                     _ => RespValue::Error(String::from("ERR unknown command")),                                  
                 },                                                                                               

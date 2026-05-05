@@ -21,6 +21,19 @@ impl Store {
         }
     }
 
+    pub fn mget(&self, keys: Vec<&str>) -> RespValue {
+        let mut resp = vec![];
+        for key in keys {
+            if self.store.contains_key(key) {
+                resp.push(RespValue::BulkString(Some(self.store.get(key).unwrap().clone())));
+            }
+            else {
+                resp.push(RespValue::BulkString(None));
+            }
+        }
+        return RespValue::Array(resp);
+    }
+
     pub fn set(&mut self, key: &str, val: &str) -> RespValue {
         self.store.insert(key.to_string(), val.to_string());
         return RespValue::SimpleString(String::from("OK"));
