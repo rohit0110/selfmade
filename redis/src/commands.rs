@@ -65,7 +65,7 @@ pub fn handle(resp_value: RespValue, store: Arc<Mutex<Store>>) -> RespValue {
                         match &elements[1] {
                             RespValue::BulkString(Some(key)) => match &elements[2] {
                                 RespValue::BulkString(Some(ttl)) => return store.expire(key, match ttl.parse::<i64>() {
-                                    Some(val) => val,
+                                    Ok(val) => val,
                                     _ => return RespValue::Error(String::from("TIME PROVIDED IS NOT A NUMBER")),
                                 }), //what if not i64 parsed?
                                 _ => return RespValue::Error(String::from("NO TTL PROVIDED")),

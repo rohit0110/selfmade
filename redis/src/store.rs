@@ -117,7 +117,11 @@ impl Store {
                 Some(time) => time,
                 None => return RespValue::Integer(-1),
             };
-            return RespValue::Integer((expires_at.duration_since(Instant::now()).as_secs()) as i64);
+            return RespValue::Integer((expires_at.checked_duration_since(Instant::now())
+            .unwrap_or_default()
+            .as_secs_f64()
+            .ceil()
+            ) as i64);
         } else {
             if self.store.contains_key(key) {
                 self.store.remove(key);
