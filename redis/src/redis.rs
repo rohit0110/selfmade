@@ -1,10 +1,9 @@
-use std::net::TcpListener;
-use std::thread;
-use std::io::BufReader;
+use tokio::net::TcpListener;
+use tokio::io::BufReader;
 use crate::resp::{resp_parser, resp_serializer};
 use crate::resp::RespValue;
 use crate::commands::handle;
-use std::io::Write;
+use tokio::io::AsyncWriteExt;
 use crate::store::Store;
 use std::sync::{Arc,Mutex};
 
@@ -14,28 +13,27 @@ pub struct Redis {
 }
 
 impl Redis {
-    pub fn new(port: u16) -> Self {
-        let listener = TcpListener::bind(format!("127.0.0.1:{}",port)).expect("Failed to bind port");
+    pub fn new(listener: TcpListener) -> Self {
         Self{
             listener,
             store: Arc::new(Mutex::new(Store::new()))
         }
     }
 
-    pub fn run(&self) {
-        for stream in self.listener.incoming() {
-            let stream = stream.unwrap();
+    pub async fn run(&self) {
+        loop {
+            let (stream, _addr) = self.listener.accept().await.unwrap(); 
             let binding = self.store.clone();
-            let thread = thread::spawn(move || {
+            let thread = tokio::spawn(async move {
                 let mut reader = BufReader::new(stream);
                 loop {
-                    match resp_parser(&mut reader) {
+                    match resp_parser(&mut reader).await {
                         Some(parsed_resp) => {
-                            match_resp(&parsed_resp);
+                            // match_resp(&parsed_resp);
                             let response = handle(parsed_resp, binding.clone());
                             let serialized_resp = resp_serializer(response);
                             let mut stream = reader.get_mut();
-                            stream.write_all(serialized_resp.as_bytes()).unwrap();
+                            stream.write_all(serialized_resp.as_bytes()).await.unwrap();
                         },
                         None => break,
                     }
