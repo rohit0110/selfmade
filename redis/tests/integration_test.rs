@@ -4,15 +4,25 @@ use std::thread;
 use std::time::Duration;
 use std::sync::Once;
 use redis::Redis;
+use tokio::net::TcpListener;
 
 static START: Once = Once::new();
 
 fn start_server() {
     START.call_once(|| {
         thread::spawn(|| {
-            Redis::new(7879).run();
+            let rt = tokio::runtime::Runtime::new().unwrap();
+            rt.block_on(async {
+                let listener = TcpListener::bind("127.0.0.1:7879").await.unwrap();
+                Redis::new(listener).run().await;
+            });
         });
-        thread::sleep(Duration::from_millis(100));
+        loop {
+            if TcpStream::connect("127.0.0.1:7879").is_ok() {
+                break;
+            }
+            thread::sleep(Duration::from_millis(10));
+        }
     });
 }
 
